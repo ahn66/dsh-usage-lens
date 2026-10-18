@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Usage Lens",
+    "description": "Adds today's token total and estimated spend to the composer stats row, backed by a per-call JSONL ledger."
+  }
+}

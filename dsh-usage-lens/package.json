@@ -1,0 +1,35 @@
+{
+  "name": "dsh-usage-lens",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Session-embedded usage and process lens for DeepSeek Harness: a per-call JSONL token ledger with real turn/step attribution, Beijing-day pricing, a composer status pill, a per-turn detail panel, and an execution process view with pinned key steps and frozen-request Skill verification.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./lib/*.js": "./lib/*.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "lib/*.js",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "license": "MIT"
+}

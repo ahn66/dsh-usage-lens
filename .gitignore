@@ -1,0 +1,20 @@
+# dependencies / build output
+node_modules/
+dist/
+lib/**/*.map
+
+# local logs and OS noise
+*.log
+npm-debug.log*
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# editor / tooling
+.vscode/
+.idea/
+*.swp
+
+# local scratch (hermes/agent scratch dirs used while developing)
+_scratch/
+.compress-scratch/

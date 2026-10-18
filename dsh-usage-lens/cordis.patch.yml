@@ -1,0 +1,20 @@
+# dsh-usage-lens bundle layer: one Host row. The Client half rides the same
+# package through `dsh.client` in package.json.
+- insert:
+    - id: usage-lens
+      name: dsh-usage-lens
+      # Optional overrides, all read defensively by lib/config.js:
+      #
+      # config:
+      #   ledgerDir: 'F:\Users\me\.dsh\usage-lens'
+      #   statusPath: '/plugins/dsh-usage-lens/today'
+      #   timeZone: 'Asia/Shanghai'
+      #   pricing:
+      #     version: 'builtin-2026-10-18+cn'
+      #     holidays: ['2026-10-01', '2026-10-02']
+      #     models:
+      #       deepseek-v4-pro:
+      #         peak: { cacheHit: 0.32, cacheMiss: 9.5, output: 28 }
+      #       'acme/*':
+      #         offPeak: { cacheHit: 0.02, cacheMiss: 1.2, output: 5 }
+      config: {}
