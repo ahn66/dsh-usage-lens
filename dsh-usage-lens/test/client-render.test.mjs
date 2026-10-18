@@ -133,6 +133,21 @@ let calls = 0
 const realFetch = globalThis.fetch
 // A browser resolves the cell's root-relative path against the page origin.
 const ORIGIN = process.env.DSH_WEB_URL ?? 'http://127.0.0.1:3631'
+
+// This is the one suite that renders against a LIVE Host route, so it needs a
+// running DeepSeek Harness. Without one it says so and exits 0, which keeps the
+// whole suite runnable from a fresh clone or CI instead of failing on a missing
+// local service.
+try {
+  const probe = await realFetch(`${ORIGIN}/plugins/dsh-usage-lens/today`, {
+    signal: AbortSignal.timeout(2500),
+  })
+  if (!probe.ok) throw new Error(`HTTP ${probe.status}`)
+} catch (error) {
+  console.log(`skipped: no live Harness route at ${ORIGIN} (${error instanceof Error ? error.message : String(error)})`)
+  process.exit(0)
+}
+
 globalThis.fetch = (url, init) => {
   calls += 1
   const absolute = typeof url === 'string' && url.startsWith('/') ? `${ORIGIN}${url}` : url

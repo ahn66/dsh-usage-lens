@@ -2,6 +2,8 @@
 
 一个内嵌在 DeepSeek Harness（DSH）会话界面里的**用量与过程可观测性插件**：状态条显示今日 Token 与花费，点开是「本次询问明细 / 今日用量 / 执行过程」三块面板，底层是一份按次调用的 JSONL 账本。
 
+> **English** — `dsh-usage-lens` is a plugin for [DeepSeek Harness](https://github.com/deepseek-ai): it intercepts `llm/stream`, settles one JSONL ledger row per assistant call from the provider's authoritative usage, attributes calls to real `turn`/`step` through `session/event`, prices each Beijing calendar day with an overridable table, and renders one status cell in the shipped composer stats row plus a three-block detail panel (this turn, today, execution process). 372 self checks, no dependencies, MIT. Design notes are in [`dsh-usage-lens/README.md`](dsh-usage-lens/README.md).
+
 - 不新增独立窗口：状态条嵌在 DSH 自带的 `conversation.composer.dock` 统计行右侧，不新增行。
 - 账本只存 token 分桶与元数据，**不存金额**；金额按当前价格表在渲染时计算，所以调价会回溯历史而不是篡改历史。
 - 一次 `assistant/message` 调用 = 一条账本记录；token 以 provider 上报的 `usage` 为准，绝不累加 `assistant/chunk` 里的片段。

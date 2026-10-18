@@ -1,0 +1,35 @@
+name: tests
+
+# The suites are plain `node` scripts with no dependencies, so CI only needs a
+# checkout and a Node runtime. `client-render` is the one suite that renders
+# against a live Host route; it skips itself (exit 0) when no Harness is running.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: run the plugin suites
+        run: |
+          set -e
+          for suite in logic interceptor turns process day client-render panel process-ui today-ui; do
+            echo "::group::$suite"
+            node "dsh-usage-lens/test/$suite.test.mjs"
+            echo "::endgroup::"
+          done
