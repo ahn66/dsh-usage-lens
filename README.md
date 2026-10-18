@@ -1,5 +1,7 @@
 # dsh-usage-lens
 
+[![tests](https://github.com/ahn66/dsh-usage-lens/actions/workflows/tests.yml/badge.svg)](https://github.com/ahn66/dsh-usage-lens/actions/workflows/tests.yml)
+
 一个内嵌在 DeepSeek Harness（DSH）会话界面里的**用量与过程可观测性插件**：状态条显示今日 Token 与花费，点开是「本次询问明细 / 今日用量 / 执行过程」三块面板，底层是一份按次调用的 JSONL 账本。
 
 > **English** — `dsh-usage-lens` is a plugin for [DeepSeek Harness](https://github.com/deepseek-ai): it intercepts `llm/stream`, settles one JSONL ledger row per assistant call from the provider's authoritative usage, attributes calls to real `turn`/`step` through `session/event`, prices each Beijing calendar day with an overridable table, and renders one status cell in the shipped composer stats row plus a three-block detail panel (this turn, today, execution process). 372 self checks, no dependencies, MIT. Design notes are in [`dsh-usage-lens/README.md`](dsh-usage-lens/README.md).
