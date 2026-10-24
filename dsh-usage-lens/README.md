@@ -19,7 +19,9 @@ Session-embedded usage lens for DeepSeek Harness.
   (`按 <version> 价格表估算` / `自定义价格`), unpriced handling in both blocks, and
   size-based ledger rotation that keeps history readable.
 
-Still out of scope: automatic price syncing (deliberately) and a pricing editor.
+Still out of scope: a pricing editor. Automatic price syncing exists as an
+**opt-in** layer (see [Remote price sync](#remote-price-sync-opt-in)); it is off
+unless a profile asks for it, so the default remains no-network.
 
 ## Files
 
@@ -30,6 +32,7 @@ Still out of scope: automatic price syncing (deliberately) and a pricing editor.
 | `lib/config.js` | Defensive config normalization (`ledgerDir`, `ledgerMaxBytes`, three route paths, `timeZone`, `pricing`) |
 | `lib/time.js` | Beijing wall-clock, day/month keys, ISO with offset, peak windows |
 | `lib/pricing.js` | Built-in snapshot, override merge/replace, lookup order, label, amount math |
+| `lib/pricing-sync.js` | Opt-in remote price layer: fetch, validate, alias, cache, degrade |
 | `lib/ledger.js` | `ledger-YYYY-MM.jsonl` append (serialized), month + size rotation, cross-segment queries |
 | `lib/day.js` | The one day fold: buckets, money, hour trend, cache hit rate |
 | `lib/stream-interceptor.js` | `llm/stream` wrap: live estimate, usage capture, status, attribution, frozen-request hook |
@@ -39,7 +42,7 @@ Still out of scope: automatic price syncing (deliberately) and a pricing editor.
 | `lib/process.js` | Pure execution-process projection (pins + folded flow) |
 | `lib/http.js` | Shared route plumbing (loopback guard, JSON responses) |
 | `lib/status-route.js` · `lib/session-route.js` · `lib/raw-route.js` | The three JSON routes |
-| `test/*.test.mjs` | 269 self checks across seven suites |
+| `test/*.test.mjs` | 451 self checks across ten suites |
 
 ## Where the data lives
 
@@ -244,6 +247,65 @@ too, and all are `Cache-Control: no-store`.
 A config change reloads the plugin through the normal Loader path; no restart is
 needed.
 
+## Remote price sync (opt-in)
+
+The plugin ships no network behaviour by default — an untouched profile prices
+only from the built-in snapshot and its own `pricing` section. A profile can opt
+into a fetched price layer:
+
+```yaml
+pricing:
+  sync:
+    enabled: true                    # default false: no request is ever made
+    sources: ['openrouter', 'litellm']
+    usdToCny: 7.1                    # both sources quote USD, the ledger is CNY
+    maxAgeMs: 604800000              # one week; a fresher cache is used as-is
+    refresh: true                    # false = never refresh, cache only
+  version: 'official-2026-10-24'
+  models:                            # local entries still win
+    'qwen-token-plan-cn/deepseek-v4.1-flash': { offPeak: { cacheMiss: 1, output: 4 } }
+```
+
+Two public sources ship, and neither needs a key:
+
+| source | what it is | host |
+|---|---|---|
+| `openrouter` | OpenRouter's own model list | `openrouter.ai` |
+| `litellm` | LiteLLM's community-maintained table, ~4000 rows | `cdn.jsdelivr.net` (mirrors the GitHub branch) |
+
+Sources are merged in the order written, so the last one wins a contested key —
+put the source you trust more last. `litellm` is fetched through jsDelivr rather
+than `raw.githubusercontent.com`, which resolves to a non-public address on some
+restricted networks.
+
+What it guarantees, in the same spirit as the rest of the plugin:
+
+- **No number is ever invented.** An unreachable source, a malformed payload, or
+  a missing model contributes nothing. An unpriced model stays unpriced and the
+  total keeps its `≥` lower bound.
+- **A failed refresh never erases a good cache.** The last payload plus its
+  fetch instant live in `<ledgerDir>/pricing-cache.json`; a stale cache is
+  served while a refresh runs in the background, so activation never waits on
+  the network.
+- **Local always wins.** A hand-written `pricing.models` entry suppresses any
+  fetched alias that would otherwise shadow it.
+- **A first-party rate beats a reseller's.** LiteLLM lists one model under many
+  resellers — a provider charging a hundredth of DeepSeek's own rate sits beside
+  DeepSeek's row. The provider that actually serves a model claims its bare name,
+  and listing order never decides the winner, so a promotional price cannot
+  masquerade as the model's price.
+- **Aliases are widened, never fabricated.** A remote catalogue names models its
+  own way (`deepseek/deepseek-v4.1-flash-1017`), while the ledger records the
+  configured route id (`deepseek-v4.1-flash`). The sync registers both spellings
+  against the same real rates, because a sync that loads thousands of models and
+  still prices nothing is worse than no sync at all.
+
+Peak schedules survive both sources. OpenRouter encodes DeepSeek's windows in
+`pricing.overrides` as UTC hundredths of an hour, and LiteLLM states them in
+`off_peak_pricing`. In both cases the peak window is chosen as the *dearer*
+weekday band — never by position, since most bands repeat the cheap rate — which
+decodes to exactly the plugin's own Beijing 09:00–12:00 and 14:00–18:00 windows.
+
 ## Verify
 
 ```powershell
@@ -256,6 +318,7 @@ node dsh-usage-lens/test/panel.test.mjs         # pill → panel → cards → r
 node dsh-usage-lens/test/process-ui.test.mjs    # sticky pins, folded flow, raw gate
 node dsh-usage-lens/test/day.test.mjs           # day fold, override, rotation, cross-midnight
 node dsh-usage-lens/test/today-ui.test.mjs      # 今日用量 numbers, hour trend, labels
+node dsh-usage-lens/test/pricing-sync.test.mjs  # opt-in gate, wire validation, aliases, peak bands, cache
 
 node tools/check-day.mjs  "<DSH_HOME>/usage-lens/ledger-2026-10.jsonl"
 node tools/check-today.mjs

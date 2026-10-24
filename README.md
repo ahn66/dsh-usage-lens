@@ -4,7 +4,7 @@
 
 一个内嵌在 DeepSeek Harness（DSH）会话界面里的**用量与过程可观测性插件**：状态条显示今日 Token 与花费，点开是「本次询问明细 / 今日用量 / 执行过程」三块面板，底层是一份按次调用的 JSONL 账本。
 
-> **English** — `dsh-usage-lens` is a plugin for [DeepSeek Harness](https://github.com/deepseek-ai): it intercepts `llm/stream`, settles one JSONL ledger row per assistant call from the provider's authoritative usage, attributes calls to real `turn`/`step` through `session/event`, prices each Beijing calendar day with an overridable table, and renders one status cell in the shipped composer stats row plus a three-block detail panel (this turn, today, execution process). 372 self checks, no dependencies, MIT. Design notes are in [`dsh-usage-lens/README.md`](dsh-usage-lens/README.md).
+> **English** — `dsh-usage-lens` is a plugin for [DeepSeek Harness](https://github.com/deepseek-ai): it intercepts `llm/stream`, settles one JSONL ledger row per assistant call from the provider's authoritative usage, attributes calls to real `turn`/`step` through `session/event`, prices each Beijing calendar day with an overridable table, and renders one status cell in the shipped composer stats row plus a three-block detail panel (this turn, today, execution process). 451 self checks, no dependencies, MIT. Design notes are in [`dsh-usage-lens/README.md`](dsh-usage-lens/README.md).
 
 - 不新增独立窗口：状态条嵌在 DSH 自带的 `conversation.composer.dock` 统计行右侧，不新增行。
 - 账本只存 token 分桶与元数据，**不存金额**；金额按当前价格表在渲染时计算，所以调价会回溯历史而不是篡改历史。
@@ -28,7 +28,7 @@
 dsh-usage-lens/         插件本体（Host 半边 index.js + lib/*，Client 半边 client.js）
   lib/                  time · pricing · ledger · day · turns · skill-parse · aggregator
                         · process · http · 三条路由 · stream-interceptor
-  test/                 9 个套件，372 项自检（node test/*.test.mjs，无框架）
+  test/                 10 个套件，451 项自检（node test/*.test.mjs，无框架）
   locale/ icon.svg      插件管理页的标题/描述/图标
 tools/                  独立核对脚本（手算对账、会话日志比对、现场查看）
 AGENTS.md               项目约定（硬性口径与模块划分）
@@ -76,7 +76,7 @@ plugin_manager install_bundle  target = <仓库目录>/dsh-usage-lens
 ## 自查
 
 ```powershell
-# 插件自检（9 个套件 / 372 项）
+# 插件自检（10 个套件 / 451 项）
 node dsh-usage-lens/test/logic.test.mjs
 node dsh-usage-lens/test/interceptor.test.mjs
 node dsh-usage-lens/test/turns.test.mjs
@@ -86,6 +86,7 @@ node dsh-usage-lens/test/client-render.test.mjs
 node dsh-usage-lens/test/panel.test.mjs
 node dsh-usage-lens/test/process-ui.test.mjs
 node dsh-usage-lens/test/today-ui.test.mjs
+node dsh-usage-lens/test/pricing-sync.test.mjs
 
 # 独立核对（不导入插件代码）
 node tools/check-day.mjs "<DSH_HOME>/usage-lens"   # 用硬编码价格表手算，与接口对账
@@ -100,7 +101,8 @@ node tools/verify-ledger.mjs <ledger> <session.v4.jsonl.zstd>
 
 - 「执行过程」的工具名、输入输出摘要、Skill 正文是**内存索引**：Host 重载后会丢（token 与 turn/step 仍在账本里）。
 - 原始层有硬上限：参数 4 KB、结果与 Skill 正文 8 KB，超出标记 truncated。
-- 不接入自动价格同步（有意为之）；节假日表默认空，因为不猜国务院日历。
+- 节假日表默认空，因为不猜国务院日历。
+- 自动价格同步**默认关闭**（保持「不联网」的原默认）；需在 `pricing.sync` 显式开启，详见[插件说明](dsh-usage-lens/README.md#remote-price-sync-opt-in)。
 
 ## License
 

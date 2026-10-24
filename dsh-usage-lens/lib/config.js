@@ -82,5 +82,42 @@ export function resolveConfig(raw) {
     rawPath,
     timeZone: nonEmptyString(config.timeZone) ?? DEFAULT_TIME_ZONE,
     pricing: buildPricingTable(config.pricing),
+    pricingSync: resolvePricingSync(config.pricing),
+  }
+}
+
+/**
+ * Normalize the optional `pricing.sync` section.
+ *
+ * Synchronization stays **off** unless it is asked for explicitly, which keeps
+ * the plugin's documented no-network default (AGENTS.md, "不做自动同步") for
+ * every profile that does not opt in.
+ * @param rawPricing - the raw `pricing` config section, if any.
+ * @returns resolved sync settings.
+ */
+export function resolvePricingSync(rawPricing) {
+  const raw = rawPricing !== null && typeof rawPricing === 'object' ? rawPricing.sync : undefined
+  const section = raw !== null && typeof raw === 'object' ? raw : {}
+  const enabled = section.enabled === true
+
+  const sourceIds = (() => {
+    const list = Array.isArray(section.sources)
+      ? section.sources.filter((id) => typeof id === 'string' && id.trim() !== '').map((id) => id.trim())
+      : []
+    return list.length > 0 ? list : ['openrouter']
+  })()
+
+  const positive = (value, fallback) =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback
+
+  return {
+    enabled,
+    sourceIds,
+    // Default: refresh weekly, matching a weekly upstream cadence.
+    maxAgeMs: positive(section.maxAgeMs, 7 * 24 * 60 * 60 * 1000),
+    // `refresh: false` means "use the cache even when stale", for offline runs.
+    refresh: section.refresh !== false,
+    // OpenRouter quotes US dollars; the ledger is CNY. Stated, never guessed.
+    usdToCny: positive(section.usdToCny, 7.1),
   }
 }

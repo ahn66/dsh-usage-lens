@@ -238,7 +238,10 @@ function tokenCount(value) {
 
 /**
  * Price one token bucket set with one rate entry.
- * @param rates - `{ peak, offPeak }` rates of the matched model.
+ * @param rates - one **model entry**: `{ peak, offPeak }` windows, as returned
+ *   by {@link resolveRate}. Not a single window — pass `rate.rates`, not
+ *   `rate.rates.offPeak`. A missing window falls back to the other one, so a
+ *   flat-rate model prices identically in both.
  * @param tokens - disjoint buckets: uncached input, cache read, cache write,
  *   output.
  * @param peak - whether the call instant is in a peak window.

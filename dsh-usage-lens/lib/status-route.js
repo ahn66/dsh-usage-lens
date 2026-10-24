@@ -20,9 +20,13 @@ import { dateKey, isDayKey } from './time.js'
  * @param options.now - instant the document describes (defaults to `Date.now()`).
  */
 export async function buildStatusDocument({ ledger, pricing, timeZone, live, now = Date.now() }) {
+  // `pricing` is either a table or a resolver returning `{ table, sync }`, so a
+  // route can await an opted-in remote sync without any call site caring.
+  const resolved = typeof pricing === 'function' ? await pricing() : pricing
+  const table = resolved?.table ?? resolved
   const day = aggregateDay({
     records: await ledger.readDay(dateKey(now, timeZone)),
-    pricing,
+    pricing: table,
     timeZone,
     now,
   })
@@ -33,9 +37,9 @@ export async function buildStatusDocument({ ledger, pricing, timeZone, live, now
     generatedAt: now,
     timeZone,
     date: day.date,
-    pricingVersion: pricing.version,
-    pricingCurrency: pricing.currency,
-    pricingLabel: pricingLabel(pricing),
+    pricingVersion: table.version,
+    pricingCurrency: table.currency,
+    pricingLabel: pricingLabel(table),
     today: {
       calls: day.calls,
       statuses: day.statuses,

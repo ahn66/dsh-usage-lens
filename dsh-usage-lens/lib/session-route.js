@@ -23,6 +23,10 @@ import { dateKey, isDayKey } from './time.js'
  * @param options - `ledger`, `pricing`, `collector`, `sessionId`, `now`.
  */
 export async function buildSessionDocument({ ledger, pricing, collector, sessionId, now = Date.now() }) {
+  // `pricing` is either a table or a resolver returning `{ table, sync }`, so an
+  // opted-in remote sync is awaited here without any caller caring which it got.
+  const resolved = typeof pricing === 'function' ? await pricing() : pricing
+  pricing = resolved?.table ?? resolved
   const records = await ledger.readSession(sessionId, now)
   const turns = typeof collector?.sessionTurns === 'function'
     ? collector.sessionTurns(sessionId)
